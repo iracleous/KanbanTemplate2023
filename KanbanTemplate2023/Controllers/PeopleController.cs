@@ -6,34 +6,36 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using KanbanTemplate2023.Models;
+using KanbanTemplate2023.Services;
 
 namespace KanbanTemplate2023.Controllers
 {
     public class PeopleController : Controller
     {
-        private readonly KanBanDbContext _context;
+        //  private readonly KanBanDbContext _context;
+        private readonly IPersonService _service;
 
-        public PeopleController(KanBanDbContext context)
+        public PeopleController(IPersonService service)
         {
-            _context = context;
+            _service = service;
         }
 
         // GET: People
         public async Task<IActionResult> Index()
         {
-              return View(await _context.Persons.ToListAsync());
+              return View(await _service.GetAllAsync());
         }
 
         // GET: People/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null || _context.Persons == null)
+
+            if (id == null  ||  _service.IsAvailable())
             {
                 return NotFound();
             }
 
-            var person = await _context.Persons
-                .FirstOrDefaultAsync(m => m.PersonId == id);
+            var person = await _service.GetByIdAsync(id)  ;
             if (person == null)
             {
                 return NotFound();
@@ -57,8 +59,7 @@ namespace KanbanTemplate2023.Controllers
         {
             if (ModelState.IsValid)
             {
-                _context.Add(person);
-                await _context.SaveChangesAsync();
+                await _service.Save(person);
                 return RedirectToAction(nameof(Index));
             }
             return View(person);
@@ -67,12 +68,12 @@ namespace KanbanTemplate2023.Controllers
         // GET: People/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null || _context.Persons == null)
+            if (id == null ) //|| _context.Persons == null)
             {
                 return NotFound();
             }
 
-            var person = await _context.Persons.FindAsync(id);
+            var person = await _service.GetByIdAsync(id);
             if (person == null)
             {
                 return NotFound();
@@ -93,23 +94,8 @@ namespace KanbanTemplate2023.Controllers
             }
 
             if (ModelState.IsValid)
-            {
-                try
-                {
-                    _context.Update(person);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!PersonExists(person.PersonId))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
+            {await _service.Update(person);
+                
                 return RedirectToAction(nameof(Index));
             }
             return View(person);
@@ -118,13 +104,12 @@ namespace KanbanTemplate2023.Controllers
         // GET: People/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null || _context.Persons == null)
+            if (id == null || _service.IsAvailable())
             {
                 return NotFound();
             }
 
-            var person = await _context.Persons
-                .FirstOrDefaultAsync(m => m.PersonId == id);
+            var person = await _service.GetByIdAsync(id);
             if (person == null)
             {
                 return NotFound();
@@ -138,23 +123,15 @@ namespace KanbanTemplate2023.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            if (_context.Persons == null)
+            if (_service.IsAvailable())
             {
                 return Problem("Entity set 'KanBanDbContext.Persons'  is null.");
             }
-            var person = await _context.Persons.FindAsync(id);
-            if (person != null)
-            {
-                _context.Persons.Remove(person);
-            }
-            
-            await _context.SaveChangesAsync();
+            var  person = await _service.GetByIdAsync(id);
+            await _service.Delete(person);
             return RedirectToAction(nameof(Index));
         }
 
-        private bool PersonExists(int id)
-        {
-          return _context.Persons.Any(e => e.PersonId == id);
-        }
+        
     }
 }
