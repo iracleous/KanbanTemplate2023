@@ -1,4 +1,5 @@
 using KanbanTemplate2023.Models;
+using KanbanTemplate2023.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,7 +12,7 @@ builder.Services.AddDbContext<KanBanDbContext>(options =>
             builder.Configuration
             .GetConnectionString("MyConn")));
 
-
+builder.Services.AddScoped<IPersonService, PersonService>();
 
 var app = builder.Build();
 
